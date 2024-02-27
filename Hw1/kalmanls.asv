@@ -1,0 +1,78 @@
+p = [41.25 12.5; 12.5 5];
+mut5 = [4.02 1.21];
+C = [1 0];
+Q = 8;
+
+kalman = L * transpose(C) * (C * L * transpose(C) + Q)^-1
+
+I = [1 0; 0 1];
+pt5 = (I - kalman * C) * p
+
+
+%plot_ellipse([0, 0], Sigma_5, mu_5, sigma_5p);
+
+plot_ellipse([0, 0], p, mut5, pt5);
+function eigen = get_eigen_data(matrix)
+    % Extracts eigenvalues and eigenvectors from covariance matrix.
+    [V, D] = eig(matrix);
+    eigvals = diag(D);
+    [~, idx_sort] = sort(eigvals, 'descend');
+    V = V(:, idx_sort);
+    eigvals = eigvals(idx_sort);
+    
+    eigen.eigvec_major = V(:, 1);
+    eigen.eigvec_minor = V(:, 2);
+    eigen.eigval_major = eigvals(1);
+    eigen.eigval_minor = eigvals(2);
+    eigen.theta_major = atan2d(V(2, 1), V(1, 1));
+    eigen.theta_minor = atan2d(V(2, 2), V(1, 2));
+end
+
+% Define the plot_ellipse function
+function plot_ellipse(mu_pre, cov_pre, mu_post, cov_post)
+    % Extract eigenvalues and eigenvectors from covariance matrix
+    [V_pre, D_pre] = eig(cov_pre);
+    [V_post, D_post] = eig(cov_post);
+    
+    % Find major and minor eigenvalues and vectors
+    [~, idx_max] = max(diag(D_pre));
+    [~, idx_min] = min(diag(D_pre));
+    
+    % Calculate major and minor axes lengths
+    major_axis_pre = sqrt(D_pre(idx_max, idx_max)) * 2 * sqrt(5.992);
+    minor_axis_pre = sqrt(D_pre(idx_min, idx_min)) * 2 * sqrt(5.992);
+    
+    major_axis_post = sqrt(D_post(idx_max, idx_max)) * 2 * sqrt(5.992);
+    minor_axis_post = sqrt(D_post(idx_min, idx_min)) * 2 * sqrt(5.992);
+    
+    % Calculate angles of major axes
+    theta_major_pre = atan(V_pre(2,idx_max) / V_pre(1,idx_max)) * 180 / pi;
+    theta_major_post = atan(V_post(2,idx_max) / V_post(1,idx_max)) * 180 / pi;
+    
+    % Plot ellipses
+    figure;
+    
+    % Pre-measurement ellipse
+    ellipse(mu_pre(1), mu_pre(2), major_axis_pre, minor_axis_pre, theta_major_pre, 'b');
+    
+    hold on;
+    
+    % Post-measurement ellipse
+    ellipse(mu_post(1), mu_post(2), major_axis_post, minor_axis_post, theta_major_post, 'r');
+    
+    % Add labels and title
+    title('Robot Position at Time t = 5 Estimation and then Measurement');
+    xlabel('Position');
+    ylabel('Velocity');
+end
+
+function h = ellipse(x0, y0, a, b, angle, color)
+    t = linspace(0, 2*pi);
+    
+    x = x0 + a*cos(t)*cosd(angle) - b*sin(t)*sind(angle);
+    y = y0 + a*cos(t)*sind(angle) + b*sin(t)*cosd(angle);
+    
+    h = plot(x, y, 'Color', color);
+end
+
+% Define your input variables Sigma_5, mu_5, sigma_5p before calling the function
